@@ -91,6 +91,7 @@ Example:
 Test AUC: 0.7924, F1: 0.6153
 Checkpoint saved: saved_models/CADRE_20250503_183210/epoch1.pth
 ```
+Note that the numbers after CADRE (or CADRETransformer) are the formatted datetime
 
 ## Data Used
 
