@@ -2,8 +2,13 @@ import torch
 from torch import nn
 from torch.optim import SGD, AdamW
 from torch.optim.lr_scheduler import OneCycleLR
+from torch.utils.data import DataLoader
+from cadre_models.dataset import load_gene_expr_and_y, GDSCDataset
+from cadre_models.train_utils import train_test_split_fixed, train
+from cadre_models.transformer import CADRETransformer
 from sklearn.metrics import roc_auc_score, f1_score
 import random
+import torch
 
 def train(model, train_loader, test_loader, device, epochs=10, max_lr=1e-2, optimizer_type="adamw"):
     model.to(device)
@@ -100,3 +105,38 @@ def align_y_and_pathways(y_tensor, drug_pathway_tensor):
 
     assert y_tensor.shape[1] == drug_pathway_tensor.shape[0], "Still mismatched after fixing!"
     return y_tensor, drug_pathway_tensor
+
+
+def run_transformer_pipeline(
+    gene_expr_path="original_code/data/input/exp_idx_gdsc.csv",
+    y_path="original_code/data/input/gdsc.csv",
+    emb_dim=200,
+    num_heads=1,
+    num_layers=4,
+    dropout=0.2,
+    batch_size=64,
+    epochs=10,
+    max_lr=1e-2,
+    pooling='mean',
+    optimizer_type="adamw"
+):
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    gene_expr_tensor, y_tensor = load_gene_expr_and_y(gene_expr_path, y_path)
+    train_gene_expr, train_y_tensor, test_gene_expr, test_y_tensor = train_test_split_fixed(y_tensor, gene_expr_tensor)
+    train_loader = DataLoader(GDSCDataset(train_gene_expr, train_y_tensor), batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(GDSCDataset(test_gene_expr, test_y_tensor), batch_size=batch_size)
+
+    gene_emb_matrix = torch.nn.Embedding(2000, emb_dim).weight.detach()  # dummy
+    model = CADRETransformer(
+        gene_emb_matrix=gene_emb_matrix,
+        num_drugs=train_y_tensor.shape[1],
+        emb_dim=emb_dim,
+        num_heads=num_heads,
+        num_layers=num_layers,
+        dropout=dropout,
+        pooling=pooling
+    )
+
+    train(model, train_loader, test_loader, device, epochs=epochs, max_lr=max_lr, optimizer_type=optimizer_type)
