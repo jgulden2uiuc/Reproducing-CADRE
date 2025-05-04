@@ -1,4 +1,4 @@
-# CADRE: Contextual Attention-Based Drug Response Model
+# Reproducing the CADRE (Contextual Attention-Based Drug REsponse) Model
 
 This repository contains a PyTorch reimplementation and extension of the CADRE model from Tao et al. (2020), which predicts binary drug sensitivity in cancer cell lines using contextual attention over gene embeddings. We also provide a transformer-based variant for comparison.
 
